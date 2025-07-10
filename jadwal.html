@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jadwal Perkuliahan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --bg: #f5f6fa;
+      --text: #2c3e50;
+      --card: white;
+    }
+    body.dark {
+      --bg: #1e1e1e; --text: #ecf0f1; --card: #2c3e50;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
+    body {
+      background: var(--bg); color: var(--text);
+      padding:20px; min-height:100vh;
+    }
+    header {
+      display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;
+    }
+    header button {
+      background:var(--primary); color:white; padding:8px 14px;
+      border:none; border-radius:6px; font-weight:600; cursor:pointer;
+    }
+    .user-info { display:flex; align-items:center; gap:12px; }
+    .user-info img { width:40px; height:40px; border-radius:50%; }
+    h1 { font-size:22px; }
+    .logout-btn { background:#e74c3c; }
+    .date { text-align:center; font-size:18px; color:#7f8c8d; margin-bottom:20px; }
+    .tabs { display:flex; justify-content:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    .tabs button {
+      padding:8px 16px; background:white; border:2px solid var(--primary);
+      border-radius:20px; color:var(--primary); font-weight:600; cursor:pointer;
+    }
+    .tabs button.active, .tabs button:hover {
+      background:var(--primary); color:white;
+    }
+    .schedule { list-style:none; max-width:800px; margin:auto; }
+    .schedule li {
+      background:var(--card); padding:16px; border-radius:12px;
+      margin-bottom:12px; box-shadow:0 4px 8px rgba(0,0,0,0.05);
+    }
+    .schedule h2 { font-size:18px; margin-bottom:6px; }
+    .info { font-size:14px; color:#555; }
+    .status {
+      display:inline-block; margin-top:8px; padding:4px 12px; border-radius:12px;
+      font-size:13px; font-weight:600; background:#ecf0f1; color:#2c3e50;
+    }
+    .action-btns { margin-top:10px; display:flex; gap:8px; }
+    .action-btns button {
+      padding:6px 12px; border:none; border-radius:6px; cursor:pointer;
+      font-size:14px;
+    }
+    .action-btns .del { background:#e74c3c;color:white; }
+    .add-export {
+      margin:20px auto; max-width:800px;
+      display:flex; justify-content:space-between;
+    }
+    .add-export button {
+      background:var(--primary); color:white; border:none; padding:10px 20px;
+      border-radius:6px; font-weight:600; cursor:pointer;
+    }
+    #formModal {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4);
+      align-items:center; justify-content:center;
+    }
+    #formModal .modal-content {
+      background:white; padding:20px; border-radius:12px; width:320px;
+    }
+    #formModal input, #formModal select {
+      width:100%; padding:8px; margin-bottom:10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="user-info">
+      <img id="userPhoto" alt="User" />
+      <h1 id="userName">Jadwal</h1>
+    </div>
+    <div>
+      <button onclick="window.location.href='settings.html'">⚙️ Pengaturan</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="date" id="date"></div>
+  <ul class="tabs" id="dayTabs"></ul>
+  <ul class="schedule" id="scheduleList"></ul>
+  <div class="add-export">
+    <button onclick="openForm()">+ Tambah Jadwal</button>
+    <button onclick="exportPDF()">Cetak Jadwal Hari Ini (PDF)</button>
+  </div>
+
+  <!-- Modal -->
+  <div id="formModal">
+    <div class="modal-content">
+      <h3 id="formTitle">Tambah Jadwal</h3>
+      <input id="judulInput" placeholder="Mata Kuliah" />
+      <select id="prodiInput">
+        <option value="Teknologi Informasi">Teknologi Informasi</option>
+        <option value="Teknologi Mesin">Teknologi Mesin</option>
+        <option value="Administrasi Perkantoran">Administrasi Perkantoran</option>
+        <option value="Akuntansi">Akuntansi</option>
+      </select>
+      <div style="display:flex; gap:5px;">
+        <select id="jamMulaiSelect"></select>
+        <select id="jamSelesaiSelect"></select>
+      </div>
+      <select id="ruangInput"></select>
+      <input id="dosenInput" placeholder="Dosen" />
+      <select id="statusInput">
+        <option value="Digunakan">Digunakan</option>
+        <option value="Dipesan">Dipesan</option>
+      </select>
+      <div style="text-align:right;">
+        <button onclick="submitForm()">Simpan</button>
+        <button onclick="closeForm()" style="margin-left:8px;">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if(localStorage.getItem('loggedIn')!=='true') window.location='login.html';
+    const nama = localStorage.getItem('username')||'Mahasiswa';
+    const foto = localStorage.getItem('profilePic')||'https://via.placeholder.com/80';
+    document.getElementById('userName').textContent=nama;
+    document.getElementById('userPhoto').src=foto;
+
+    const now=new Date();
+    const dayNames=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    const fullDate=`${dayNames[now.getDay()]}, ${now.getDate()} ${now.toLocaleString('id',{month:'long'})} ${now.getFullYear()}`;
+    document.getElementById('date').textContent=fullDate;
+
+    const days=["Senin","Selasa","Rabu","Kamis","Jumat"];
+    let schedules=JSON.parse(localStorage.getItem('jadwalData'))||Object.fromEntries(days.map(d=>[d,[]]));
+    let currentDay=dayNames[now.getDay()];
+    if(!days.includes(currentDay)) currentDay="Senin";
+    let editIndex=null;
+
+    const tabContainer=document.getElementById('dayTabs');
+    const scheduleList=document.getElementById('scheduleList');
+    const jamMulai=document.getElementById('jamMulaiSelect');
+    const jamSelesai=document.getElementById('jamSelesaiSelect');
+    const ruang=document.getElementById('ruangInput');
+
+    function createTabs(){
+      days.forEach(d=>{
+        const b=document.createElement('button');
+        b.textContent=d;
+        if(d===currentDay) b.classList.add('active');
+        b.onclick=()=>{currentDay=d; updateTabs(); render();};
+        tabContainer.appendChild(b);
+      });
+    }
+    function updateTabs(){
+      tabContainer.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      tabContainer.querySelectorAll('button').forEach(b=>{
+        if(b.textContent===currentDay) b.classList.add('active');
+      });
+    }
+    function getStatusText(status){
+      return status === 'Digunakan' ? 'Digunakan' : 'Dipesan';
+    }
+    function render(){
+      const list=schedules[currentDay];
+      scheduleList.innerHTML=list.length
+        ? list.map((it,i)=>`
+          <li>
+            <h2>${it.title} [${it.prodi}]</h2>
+            <div class="info">Jam: ${it.time}<br>Ruang: ${it.room}<br>Dosen: ${it.lecturer}</div>
+            <div class="status">${getStatusText(it.status)}</div>
+            <div class="action-btns">
+              <button onclick="openForm('${currentDay}',${i})">Edit</button>
+              <button class="del" onclick="hapus('${currentDay}',${i})">Hapus</button>
+            </div>
+          </li>`).join('')
+        : '<li style="color:#555;text-align:center">Tidak ada jadwal.</li>';
+    }
+
+    function openForm(d,i){
+      document.getElementById('formModal').style.display='flex';
+      document.getElementById('formTitle').textContent=i!=null?'Edit Jadwal':'Tambah Jadwal';
+      if(i!=null){
+        const it=schedules[d][i];
+        document.getElementById('judulInput').value=it.title;
+        document.getElementById('prodiInput').value=it.prodi;
+        const [s,e]=it.time.split(' - ');
+        jamMulai.value=s; jamSelesai.value=e;
+        ruang.value=it.room;
+        document.getElementById('dosenInput').value=it.lecturer;
+        document.getElementById('statusInput').value=it.status;
+        editIndex=i;
+      } else {
+        document.querySelectorAll('#formModal input, #formModal select').forEach(el=>el.selectedIndex!==undefined?el.selectedIndex=0:el.value='');
+        editIndex=null;
+      }
+    }
+
+    function closeForm(){ document.getElementById('formModal').style.display='none'; }
+
+    function parseT(t){
+      const [h,m]=t.split('.').map(Number); return h*60+m;
+    }
+
+    function conflict(s,e,r,i){
+      return schedules[currentDay].some((it,idx)=>{
+        if(idx===i||it.room!==r) return false;
+        const [as,ae]=it.time.split(' - ').map(parseT);
+        return !(parseT(e)<=as||parseT(s)>=ae);
+      });
+    }
+
+    function submitForm(){
+      const title=document.getElementById('judulInput').value.trim();
+      const prodi=document.getElementById('prodiInput').value;
+      const s=jamMulai.value, e=jamSelesai.value;
+      const r=ruang.value;
+      const dos=document.getElementById('dosenInput').value.trim();
+      const st=document.getElementById('statusInput').value;
+      const time=`${s} - ${e}`;
+      if(!title||!prodi||!s||!e||!dos){ return alert('Lengkapi semua!'); }
+      if(parseT(s)>=parseT(e)){ return alert('Jam selesai harus setelah jam mulai!'); }
+      if(conflict(s,e,r,editIndex)){ return alert('Bentrok jadwal!'); }
+      const obj={title,prodi,time,room:r,lecturer:dos,status:st};
+      if(editIndex!=null) schedules[currentDay][editIndex]=obj;
+      else schedules[currentDay].push(obj);
+      localStorage.setItem('jadwalData',JSON.stringify(schedules));
+      render(); closeForm();
+    }
+
+    function hapus(d,i){
+      if(confirm('Yakin hapus?')){
+        schedules[d].splice(i,1);
+        localStorage.setItem('jadwalData',JSON.stringify(schedules));
+        render();
+      }
+    }
+
+    function exportPDF(){
+      const items=schedules[currentDay];
+      let doc=`Jadwal ${currentDay}\n\n`;
+      items.forEach(it=>{
+        doc+=`${it.time} | ${it.room} | ${it.prodi} | ${it.title} | ${it.lecturer} | ${it.status}\n`;
+      });
+      const blob=new Blob([doc],{type:'text/plain'});
+      const url=URL.createObjectURL(blob);
+      window.open(url,'_blank');
+    }
+
+    function genTimes(){
+      for(let h=7;h<=16;h++){
+        const t=`${h.toString().padStart(2,'0')}.00`;
+        jamMulai.append(new Option(t,t));
+        jamSelesai.append(new Option(t,t));
+      }
+    }
+
+    function genRooms(){
+      const ruangList = ['A1','A2','A3','A4','A5','A6','A61','A62','C1','C2','D1','D2','D3','D4','D5'];
+      ruangList.forEach(r => ruang.append(new Option(r, r)));
+    }
+
+    genTimes(); genRooms();
+    createTabs(); render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pengaturan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --bg: #f9f9f9;
+      --text: #2c3e50;
+      --card: white;
+    }
+
+    body.dark {
+      --bg: #1e1e1e;
+      --text: #ecf0f1;
+      --card: #2c3e50;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+    }
+
+    button {
+      padding: 12px 20px;
+      border: none;
+      background-color: var(--primary);
+      color: white;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-right: 10px;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .logout-btn {
+      background-color: #e74c3c;
+    }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 30px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .profile-img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      display: block;
+    }
+  </style>
+
+  <script>
+    if (localStorage.getItem('loggedIn') !== 'true') {
+      window.location.href = 'login.html';
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <h2>Pengaturan Akun</h2>
+    <a href="jadwal.html" class="back-link">← Kembali</a>
+  </header>
+
+  <div class="form-group">
+    <label>Foto Profil</label>
+    <img id="previewImg" class="profile-img" src="https://via.placeholder.com/100x100?text=?" alt="Foto Profil">
+    <input type="file" accept="image/*" onchange="loadImage(event)">
+  </div>
+
+  <div class="form-group">
+    <label for="username">Nama Pengguna</label>
+    <input type="text" id="username" placeholder="Masukkan nama pengguna">
+  </div>
+
+  <div class="form-group">
+    <label for="theme">Tema Warna</label>
+    <select id="theme" onchange="ubahWarna()">
+      <option value="#2c3e50">Navy (Default)</option>
+      <option value="#3498db">Biru</option>
+      <option value="#e67e22">Oranye</option>
+      <option value="#27ae60">Hijau</option>
+      <option value="#9b59b6">Ungu</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Mode Tampilan</label>
+    <button onclick="toggleDarkMode()">Toggle Mode Gelap</button>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <button onclick="simpan()">💾 Simpan</button>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+  </div>
+
+  <script>
+    window.onload = function () {
+      document.getElementById('username').value = localStorage.getItem('username') || 'Mahasiswa';
+      const warna = localStorage.getItem('themeColor') || '#2c3e50';
+      document.documentElement.style.setProperty('--primary', warna);
+      document.getElementById('theme').value = warna;
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark');
+      }
+      const foto = localStorage.getItem('profilePic');
+      if (foto) {
+        document.getElementById('previewImg').src = foto;
+      }
+    };
+
+    function simpan() {
+      const nama = document.getElementById('username').value.trim();
+      if (nama) localStorage.setItem('username', nama);
+      alert('Pengaturan disimpan!');
+    }
+
+    function ubahWarna() {
+      const warna = document.getElementById('theme').value;
+      localStorage.setItem('themeColor', warna);
+      document.documentElement.style.setProperty('--primary', warna);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+    }
+
+    function loadImage(event) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const base64 = reader.result;
+        document.getElementById('previewImg').src = base64;
+        localStorage.setItem('profilePic', base64);
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+
+    function logout() {
+      localStorage.removeItem('loggedIn');
+      window.location.href = 'login.html';
+    }
+  </script>
+</body>
+</html>
